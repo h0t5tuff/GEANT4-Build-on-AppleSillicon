@@ -1,6 +1,5 @@
-# APPLESILICON
-
-DEPENDENCIES:
+-------APPLESILICON----------
+# DEPENDENCIES:
 echo "base tools"
 brew install python wget git make xerces-c
 echo "Build utilities"
@@ -15,15 +14,13 @@ brew install cfitsio davix fftw freetype ftgl gcc giflib gl2ps glew \
              tbb xrootd xxhash xz zstd
 echo "geant4 stuff"
 brew install clhep expat jpeg libxi libxmu open-mpi
-# Update and cleanup
 brew update && brew upgrade && brew autoremove && brew cleanup && brew doctor
-——————————————————
-BUILD:
-
+# BUILD:
 mkdir GEANT4 && cd GEANT4
-git clone --branch v11.3.2 --depth 1 https://gitlab.cern.ch/geant4/geant4.git .
+git clone https://github.com/Geant4/geant4.git geant4
 cd geant4
-git checkout tags/v11.3.2 -b geant4-11.3.2
+git fetch --tags
+git checkout geant4-11.4-release
 rm -rf build-11.4 && mkdir build-11.4 && cd build-11.4
 cmake ../geant4 \
   -DCMAKE_INSTALL_PREFIX=../install-11.4 \
@@ -36,17 +33,18 @@ cmake ../geant4 \
   -DGEANT4_USE_GDML=ON \
   -DGEANT4_USE_QT=ON \
   -DGEANT4_USE_OPENGL=ON \
-  -DCMAKE_PREFIX_PATH="/opt/homebrew" \
-  -DGEANT4_USE_HDF5=OFF \
-  -DHDF5_ROOT="$(brew --prefix hdf5)" 
+  -DGEANT4_USE_HDF5=ON \
+  -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
+  -DHDF5_DIR="$HDF5_DIR" \
+  -DCMAKE_PREFIX_PATH="$HDF5_ROOT:/opt/homebrew"
 make -j"$(sysctl -n hw.ncpu)"
 make install
-————————————————
-.zshrc:
 
-————————————————
-# LINUX
 
+
+
+
+———————LINUX—————————
 DEPENDENCIES:
 sudo apt update
 sudo apt install -y \
@@ -60,7 +58,6 @@ sudo apt install -y \
   libopenmpi-dev \
   zlib1g-dev libssl-dev \
   curl wget unzip
-————————————————
 BUILD:
 G4SRC=~/geant4-v11.3.1
 G4BUILD=~/geant4/build
@@ -77,11 +74,8 @@ cmake "$G4SRC" \
     -DGEANT4_USE_SYSTEM_CLHEP=ON
 make -j"$(nproc)"
 make install
-————————————————
-.bashrc:
 
-————————————————
-EXAMPLE:
+—————————EXAMPLES———————
 cd ~/GEANT4/geant4/examples/basic/B1
 rm -rf build && mkdir build && cd build
 (on mac)
@@ -97,3 +91,31 @@ make -j$(nproc)
 
 UI mode: ./<sim> ---> /control/execute <mac> 
 batch mode: ./<sim> -m <mac>
+
+
+
+
+
+
+
+
+
+--------------HDF5 (needed for REMAGE)-----------
+mkdir HDF5 && cd HDF5
+git clone https://github.com/HDFGroup/hdf5.git
+cd hdf5
+git checkout hdf5-1_14_3
+rm -rf build install && mkdir build install && cd build
+cmake ../hdf5 \
+  -DCMAKE_INSTALL_PREFIX=../install \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=ON \
+  -DHDF5_ENABLE_THREADSAFE=ON \
+  -DHDF5_BUILD_HL_LIB=ON \
+  -DALLOW_UNSUPPORTED=ON \
+  -DHDF5_BUILD_CPP_LIB=OFF \
+  -DHDF5_BUILD_FORTRAN=OFF \
+  -DHDF5_BUILD_JAVA=OFF \
+  -DBUILD_TESTING=OFF
+cmake --build . -j"$(sysctl -n hw.ncpu)"
+cmake --install .
